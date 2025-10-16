@@ -42,40 +42,32 @@ st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por
 
 # === UPLOAD DE ARQUIVO ===
 uploaded_file = st.file_uploader(
-    "📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx", "xls"])
+    "📁 Envie seu arquivo TXT (separado por vírgula)", type=["txt", "csv"])
 
 if uploaded_file:
     nome_arquivo = uploaded_file.name.lower()
     extensao = os.path.splitext(nome_arquivo)[1]
 
     try:
-        # === LEITURA SEGURA DE ARQUIVO EXCEL ===
-        if extensao == ".xls":
-            try:
-                arquivo = pd.read_excel(uploaded_file, engine="xlrd")
-            except ImportError:
-                st.error(
-                    "❌ Falta o pacote 'xlrd'. Instale com: `pip install -U xlrd`")
-                st.stop()
-        elif extensao == ".xlsx":
-            try:
-                arquivo = pd.read_excel(uploaded_file, engine="openpyxl")
-            except ImportError:
-                st.error(
-                    "❌ Falta o pacote 'openpyxl'. Instale com: `pip install -U openpyxl`")
-                st.stop()
+        # === LEITURA DE ARQUIVO TXT/CSV ===
+        if extensao in [".txt", ".csv"]:
+            arquivo = pd.read_csv(uploaded_file, sep=",", encoding="utf-8")
+            # Gera automaticamente uma planilha Excel temporária
+            excel_temp = "arquivo_convertido.xlsx"
+            arquivo.to_excel(excel_temp, index=False)
         else:
-            st.error("❌ Formato de arquivo não suportado. Envie .xls ou .xlsx.")
+            st.error(
+                "❌ Formato de arquivo não suportado. Envie um arquivo .txt ou .csv separado por vírgula.")
             st.stop()
 
         # === VERIFICAÇÕES DE COLUNAS ===
         if "DATA Inicial" not in arquivo.columns:
             st.error(
-                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel.")
+                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do arquivo.")
             st.stop()
         if "SALA" not in arquivo.columns:
             st.error(
-                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel.")
+                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do arquivo.")
             st.stop()
 
         # === CONVERSÃO DE DATAS ===
@@ -170,8 +162,7 @@ if uploaded_file:
         ).interactive()
 
         rotulos = alt.Chart(cirurgias_mensais).mark_text(
-            align="center", dy=-20, color="#007ACC",
-            fontWeight="bold", fontSize=14
+            align="center", dy=-20, color="#007ACC", fontWeight="bold", fontSize=14
         ).encode(
             x="Mes_Ano:T",
             y="Quantidade:Q",
@@ -194,9 +185,14 @@ if uploaded_file:
         st.download_button("Download CSV", data=csv_bytes,
                            file_name="cirurgias_agrupadas.csv", mime="text/csv")
 
+        # === DOWNLOAD DO EXCEL GERADO ===
+        with open(excel_temp, "rb") as f:
+            st.download_button("💾 Baixar planilha Excel convertida",
+                               f, file_name="arquivo_convertido.xlsx")
+
     except Exception as e:
         st.error(f"⚠️ Erro ao processar o arquivo: {e}")
         st.stop()
 
 else:
-    st.info("⬆️ Envie um arquivo Excel (.xlsx ou .xls) para visualizar o dashboard.")
+    st.info("⬆️ Envie um arquivo TXT ou CSV (separado por vírgula) para visualizar o dashboard.")
