@@ -36,11 +36,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # === CABEÇALHO ===
-st.markdown("<div class='titulo'>💉 Dashboard Cirúrgico Evolutivo</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por Sala</div>", unsafe_allow_html=True)
+st.markdown("<div class='titulo'>💉 Dashboard Cirúrgico Evolutivo</div>",
+            unsafe_allow_html=True)
+st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por Sala</div>",
+            unsafe_allow_html=True)
 
 # === UPLOAD DE ARQUIVO ===
-uploaded_file = st.file_uploader("📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx", "xls"])
+uploaded_file = st.file_uploader(
+    "📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx", "xls"])
 
 if uploaded_file:
     nome_arquivo = uploaded_file.name.lower()
@@ -54,10 +57,12 @@ if uploaded_file:
 
         # === CONVERSÃO DE DATAS ===
         if "DATA Inicial" not in arquivo.columns:
-            st.error("❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel e tente novamente.")
+            st.error(
+                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel e tente novamente.")
             st.stop()
 
-        arquivo["DATA Inicial"] = pd.to_datetime(arquivo["DATA Inicial"], errors="coerce")
+        arquivo["DATA Inicial"] = pd.to_datetime(
+            arquivo["DATA Inicial"], errors="coerce")
         arquivo = arquivo.dropna(subset=["DATA Inicial"])
 
         # === FILTRO DE PERÍODO ===
@@ -75,7 +80,8 @@ if uploaded_file:
         # === FILTRO MULTI-SELEÇÃO DE SALA ===
         st.sidebar.header("🏥 Filtrar por Sala")
         if "SALA" not in arquivo.columns:
-            st.error("❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel e tente novamente.")
+            st.error(
+                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel e tente novamente.")
             st.stop()
 
         salas_disponiveis = arquivo["SALA"].dropna().unique().tolist()
@@ -91,30 +97,41 @@ if uploaded_file:
             (arquivo["DATA Inicial"].dt.date <= data_final)
         ]
         if salas_selecionadas:
-            arquivo_filtrado = arquivo_filtrado[arquivo_filtrado["SALA"].isin(salas_selecionadas)]
+            arquivo_filtrado = arquivo_filtrado[arquivo_filtrado["SALA"].isin(
+                salas_selecionadas)]
 
         # === AGRUPAMENTO MENSAL ===
-        arquivo_filtrado["Mes_Ano"] = arquivo_filtrado["DATA Inicial"].dt.to_period("M")
+        arquivo_filtrado["Mes_Ano"] = arquivo_filtrado["DATA Inicial"].dt.to_period(
+            "M")
         cirurgias_mensais = (
             arquivo_filtrado.groupby("Mes_Ano")["RESERVA"]
             .count()
             .reset_index()
             .rename(columns={"RESERVA": "Quantidade"})
         )
-        cirurgias_mensais["Mes_Ano"] = cirurgias_mensais["Mes_Ano"].dt.to_timestamp()
+        cirurgias_mensais["Mes_Ano"] = cirurgias_mensais["Mes_Ano"].dt.to_timestamp(
+        )
         cirurgias_mensais = cirurgias_mensais.sort_values("Mes_Ano")
-        cirurgias_mensais["Mes_Formatado"] = cirurgias_mensais["Mes_Ano"].dt.strftime("%b/%Y").str.capitalize()
-        cirurgias_mensais["Quantidade"] = cirurgias_mensais["Quantidade"].astype(int)
+        cirurgias_mensais["Mes_Formatado"] = cirurgias_mensais["Mes_Ano"].dt.strftime(
+            "%b/%Y").str.capitalize()
+        cirurgias_mensais["Quantidade"] = cirurgias_mensais["Quantidade"].astype(
+            int)
 
         # === KPIs ===
         col1, col2, col3 = st.columns(3)
-        total = f"{int(cirurgias_mensais['Quantidade'].sum()):,}".replace(",", ".")
-        media = f"{round(cirurgias_mensais['Quantidade'].mean()):,}".replace(",", ".")
-        maior_mes = cirurgias_mensais.loc[cirurgias_mensais["Quantidade"].idxmax(), "Mes_Formatado"]
+        total = f"{int(cirurgias_mensais['Quantidade'].sum()):,}".replace(
+            ",", ".")
+        media = f"{round(cirurgias_mensais['Quantidade'].mean()):,}".replace(
+            ",", ".")
+        maior_mes = cirurgias_mensais.loc[cirurgias_mensais["Quantidade"].idxmax(
+        ), "Mes_Formatado"]
 
-        col1.markdown(f"<div class='metric-card'><div class='metric-value'>{total}</div><div class='metric-label'>Total de Cirurgias</div></div>", unsafe_allow_html=True)
-        col2.markdown(f"<div class='metric-card'><div class='metric-value'>{media}</div><div class='metric-label'>Média Mensal</div></div>", unsafe_allow_html=True)
-        col3.markdown(f"<div class='metric-card'><div class='metric-value'>{maior_mes}</div><div class='metric-label'>Mês de Maior Volume</div></div>", unsafe_allow_html=True)
+        col1.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{total}</div><div class='metric-label'>Total de Cirurgias</div></div>", unsafe_allow_html=True)
+        col2.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{media}</div><div class='metric-label'>Média Mensal</div></div>", unsafe_allow_html=True)
+        col3.markdown(
+            f"<div class='metric-card'><div class='metric-value'>{maior_mes}</div><div class='metric-label'>Mês de Maior Volume</div></div>", unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -178,11 +195,13 @@ if uploaded_file:
                            file_name="cirurgias_agrupadas.csv", mime="text/csv")
 
     except ImportError as e:
-        st.error(f"❌ Erro de dependência: {e}\n\nTente instalar com: `pip install -U xlrd openpyxl`")
+        st.error(
+            f"❌ Erro de dependência: {e}\n\nTente instalar com: `pip install -U xlrd openpyxl`")
         st.stop()
 
     except Exception as e:
-        st.error(f"❌ Não foi possível processar o arquivo. Verifique se o Excel está no formato correto e tente novamente.\n\n**Detalhe técnico:** {e}")
+        st.error(
+            f"❌ Não foi possível processar o arquivo. Verifique se o Excel está no formato correto e tente novamente.\n\n**Detalhe técnico:** {e}")
         st.stop()
 
 else:

@@ -1,5 +1,3 @@
 pandas
-streamlit
-altair
-xlrd>=2.0.1
 openpyxl
+xlrd>=2.0.1
