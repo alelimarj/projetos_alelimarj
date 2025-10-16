@@ -9,7 +9,6 @@ import os
 try:
     locale.setlocale(locale.LC_TIME, "pt_BR.utf8")
 except locale.Error:
-    # Fallback para sistemas sem suporte a pt_BR
     locale.setlocale(locale.LC_TIME, "")
 
 # === CONFIGURAÇÃO DE PÁGINA ===
@@ -50,17 +49,36 @@ if uploaded_file:
     extensao = os.path.splitext(nome_arquivo)[1]
 
     try:
+        # === LEITURA SEGURA DE ARQUIVO EXCEL ===
         if extensao == ".xls":
-            arquivo = pd.read_excel(uploaded_file, engine="xlrd")
+            try:
+                arquivo = pd.read_excel(uploaded_file, engine="xlrd")
+            except ImportError:
+                st.error(
+                    "❌ Falta o pacote 'xlrd'. Instale com: `pip install -U xlrd`")
+                st.stop()
+        elif extensao == ".xlsx":
+            try:
+                arquivo = pd.read_excel(uploaded_file, engine="openpyxl")
+            except ImportError:
+                st.error(
+                    "❌ Falta o pacote 'openpyxl'. Instale com: `pip install -U openpyxl`")
+                st.stop()
         else:
-            arquivo = pd.read_excel(uploaded_file, engine="openpyxl")
-
-        # === CONVERSÃO DE DATAS ===
-        if "DATA Inicial" not in arquivo.columns:
-            st.error(
-                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel e tente novamente.")
+            st.error("❌ Formato de arquivo não suportado. Envie .xls ou .xlsx.")
             st.stop()
 
+        # === VERIFICAÇÕES DE COLUNAS ===
+        if "DATA Inicial" not in arquivo.columns:
+            st.error(
+                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel.")
+            st.stop()
+        if "SALA" not in arquivo.columns:
+            st.error(
+                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel.")
+            st.stop()
+
+        # === CONVERSÃO DE DATAS ===
         arquivo["DATA Inicial"] = pd.to_datetime(
             arquivo["DATA Inicial"], errors="coerce")
         arquivo = arquivo.dropna(subset=["DATA Inicial"])
@@ -79,11 +97,6 @@ if uploaded_file:
 
         # === FILTRO MULTI-SELEÇÃO DE SALA ===
         st.sidebar.header("🏥 Filtrar por Sala")
-        if "SALA" not in arquivo.columns:
-            st.error(
-                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel e tente novamente.")
-            st.stop()
-
         salas_disponiveis = arquivo["SALA"].dropna().unique().tolist()
         salas_selecionadas = st.sidebar.multiselect(
             "Selecione uma ou mais Salas",
@@ -135,7 +148,7 @@ if uploaded_file:
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
-        # === GRÁFICO PREMIUM ===
+        # === GRÁFICO ===
         linha = alt.Chart(cirurgias_mensais).mark_line(
             point=alt.OverlayMarkDef(filled=True, color="#007ACC", size=200),
             color=alt.Gradient(
@@ -147,22 +160,14 @@ if uploaded_file:
             ),
             strokeWidth=4
         ).encode(
-            x=alt.X("Mes_Ano:T",
-                    axis=alt.Axis(format="%b/%Y", labelAngle=-35, labelFontSize=12, title=None, labelFontWeight='bold')),
+            x=alt.X("Mes_Ano:T", axis=alt.Axis(format="%b/%Y", labelAngle=-
+                    35, labelFontSize=12, title=None, labelFontWeight='bold')),
             y=alt.Y("Quantidade:Q", axis=alt.Axis(title=None, labels=False)),
             tooltip=[
                 alt.Tooltip("Mes_Ano:T", title="Mês/Ano", format="%b/%Y"),
                 alt.Tooltip("Quantidade:Q", title="Quantidade", format=",")
             ]
         ).interactive()
-
-        linhas_verticais = alt.Chart(cirurgias_mensais).mark_rule(
-            color='lightgray', strokeWidth=1, opacity=0.3
-        ).encode(
-            x="Mes_Ano:T",
-            y=alt.Y("Quantidade:Q"),
-            y2=alt.value(0)
-        )
 
         rotulos = alt.Chart(cirurgias_mensais).mark_text(
             align="center", dy=-20, color="#007ACC",
@@ -173,17 +178,12 @@ if uploaded_file:
             text=alt.Text("Quantidade:Q", format=",")
         )
 
-        grafico = (linhas_verticais + linha + rotulos).properties(
+        grafico = (linha + rotulos).properties(
             width="container",
             height=550,
             title="📈 Evolução Mensal de Cirurgias por Sala"
         ).configure_title(
-            fontSize=24,
-            fontWeight="bold",
-            color="#007ACC",
-            anchor="start"
-        ).configure_axis(
-            labelFontSize=12
+            fontSize=24, fontWeight="bold", color="#007ACC", anchor="start"
         )
 
         st.altair_chart(grafico, use_container_width=True)
@@ -194,14 +194,8 @@ if uploaded_file:
         st.download_button("Download CSV", data=csv_bytes,
                            file_name="cirurgias_agrupadas.csv", mime="text/csv")
 
-    except ImportError as e:
-        st.error(
-            f"❌ Erro de dependência: {e}\n\nTente instalar com: `pip install -U xlrd openpyxl`")
-        st.stop()
-
     except Exception as e:
-        st.error(
-            f"❌ Não foi possível processar o arquivo. Verifique se o Excel está no formato correto e tente novamente.\n\n**Detalhe técnico:** {e}")
+        st.error(f"⚠️ Erro ao processar o arquivo: {e}")
         st.stop()
 
 else:
