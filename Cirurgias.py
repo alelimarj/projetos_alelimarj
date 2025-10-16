@@ -5,7 +5,13 @@ from datetime import date
 import locale
 
 # === CONFIGURAÇÕES REGIONAIS ===
-locale.setlocale(locale.LC_TIME, "pt_BR.utf8")
+import locale
+
+try:
+    locale.setlocale(locale.LC_TIME, "pt_BR.utf8")
+except locale.Error:
+    # Fallback para sistemas sem suporte a pt_BR
+    locale.setlocale(locale.LC_TIME, "")
 
 # === CONFIGURAÇÃO DE PÁGINA ===
 st.set_page_config(
@@ -31,16 +37,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # === CABEÇALHO ===
-st.markdown("<div class='titulo'>💉 Dashboard Cirúrgico Evolutivo</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por Sala</div>", unsafe_allow_html=True)
+st.markdown("<div class='titulo'>💉 Dashboard Cirúrgico Evolutivo</div>",
+            unsafe_allow_html=True)
+st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por Sala</div>",
+            unsafe_allow_html=True)
 
 # === UPLOAD DE ARQUIVO ===
-uploaded_file = st.file_uploader("📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx","xls"])
+uploaded_file = st.file_uploader(
+    "📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx", "xls"])
 if uploaded_file:
     arquivo = pd.read_excel(uploaded_file)
-    arquivo["DATA Inicial"] = pd.to_datetime(arquivo["DATA Inicial"], errors="coerce")
+    arquivo["DATA Inicial"] = pd.to_datetime(
+        arquivo["DATA Inicial"], errors="coerce")
     arquivo = arquivo.dropna(subset=["DATA Inicial"])
-    
+
     # === FILTRO DE PERÍODO ===
     min_data = arquivo["DATA Inicial"].min().date()
     max_data = arquivo["DATA Inicial"].max().date()
@@ -52,7 +62,7 @@ if uploaded_file:
         max_value=max_data,
         format="DD/MM/YYYY"
     )
-    
+
     # === FILTRO MULTI-SELEÇÃO DE SALA ===
     st.sidebar.header("🏥 Filtrar por Sala")
     salas_disponiveis = arquivo["SALA"].dropna().unique().tolist()
@@ -61,40 +71,50 @@ if uploaded_file:
         options=salas_disponiveis,
         default=salas_disponiveis
     )
-    
+
     # === APLICAR FILTROS ===
     arquivo_filtrado = arquivo[
         (arquivo["DATA Inicial"].dt.date >= data_inicial) &
         (arquivo["DATA Inicial"].dt.date <= data_final)
     ]
     if salas_selecionadas:
-        arquivo_filtrado = arquivo_filtrado[arquivo_filtrado["SALA"].isin(salas_selecionadas)]
-    
+        arquivo_filtrado = arquivo_filtrado[arquivo_filtrado["SALA"].isin(
+            salas_selecionadas)]
+
     # === AGRUPAMENTO MENSAL ===
-    arquivo_filtrado["Mes_Ano"] = arquivo_filtrado["DATA Inicial"].dt.to_period("M")
+    arquivo_filtrado["Mes_Ano"] = arquivo_filtrado["DATA Inicial"].dt.to_period(
+        "M")
     cirurgias_mensais = (
         arquivo_filtrado.groupby("Mes_Ano")["RESERVA"]
         .count()
         .reset_index()
-        .rename(columns={"RESERVA":"Quantidade"})
+        .rename(columns={"RESERVA": "Quantidade"})
     )
     cirurgias_mensais["Mes_Ano"] = cirurgias_mensais["Mes_Ano"].dt.to_timestamp()
-    cirurgias_mensais = cirurgias_mensais.sort_values("Mes_Ano")  # ORDEM CRONOLÓGICA
-    cirurgias_mensais["Mes_Formatado"] = cirurgias_mensais["Mes_Ano"].dt.strftime("%b/%Y").str.capitalize()
-    cirurgias_mensais["Quantidade"] = cirurgias_mensais["Quantidade"].astype(int)
+    cirurgias_mensais = cirurgias_mensais.sort_values(
+        "Mes_Ano")  # ORDEM CRONOLÓGICA
+    cirurgias_mensais["Mes_Formatado"] = cirurgias_mensais["Mes_Ano"].dt.strftime(
+        "%b/%Y").str.capitalize()
+    cirurgias_mensais["Quantidade"] = cirurgias_mensais["Quantidade"].astype(
+        int)
 
     # === KPIs ---
     col1, col2, col3 = st.columns(3)
     total = f"{int(cirurgias_mensais['Quantidade'].sum()):,}".replace(",", ".")
-    media = f"{round(cirurgias_mensais['Quantidade'].mean()):,}".replace(",", ".")
-    maior_mes = cirurgias_mensais.loc[cirurgias_mensais["Quantidade"].idxmax(),"Mes_Formatado"]
-    
-    col1.markdown(f"<div class='metric-card'><div class='metric-value'>{total}</div><div class='metric-label'>Total de Cirurgias</div></div>", unsafe_allow_html=True)
-    col2.markdown(f"<div class='metric-card'><div class='metric-value'>{media}</div><div class='metric-label'>Média Mensal</div></div>", unsafe_allow_html=True)
-    col3.markdown(f"<div class='metric-card'><div class='metric-value'>{maior_mes}</div><div class='metric-label'>Mês de Maior Volume</div></div>", unsafe_allow_html=True)
+    media = f"{round(cirurgias_mensais['Quantidade'].mean()):,}".replace(
+        ",", ".")
+    maior_mes = cirurgias_mensais.loc[cirurgias_mensais["Quantidade"].idxmax(
+    ), "Mes_Formatado"]
+
+    col1.markdown(
+        f"<div class='metric-card'><div class='metric-value'>{total}</div><div class='metric-label'>Total de Cirurgias</div></div>", unsafe_allow_html=True)
+    col2.markdown(
+        f"<div class='metric-card'><div class='metric-value'>{media}</div><div class='metric-label'>Média Mensal</div></div>", unsafe_allow_html=True)
+    col3.markdown(
+        f"<div class='metric-card'><div class='metric-value'>{maior_mes}</div><div class='metric-label'>Mês de Maior Volume</div></div>", unsafe_allow_html=True)
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    
+
     # === GRÁFICO PREMIUM COM LINHAS VERTICAIS E RÓTULOS FORMATADOS ---
     linha = alt.Chart(cirurgias_mensais).mark_line(
         point=alt.OverlayMarkDef(filled=True, color="#007ACC", size=200),
@@ -147,4 +167,5 @@ if uploaded_file:
     # === DOWNLOAD DE DADOS ---
     st.markdown("### ⬇️ Exportar Dados Filtrados")
     csv_bytes = cirurgias_mensais.to_csv(index=False).encode()
-    st.download_button("Download CSV", data=csv_bytes, file_name="cirurgias_agrupadas.csv", mime="text/csv")
+    st.download_button("Download CSV", data=csv_bytes,
+                       file_name="cirurgias_agrupadas.csv", mime="text/csv")
