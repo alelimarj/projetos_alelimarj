@@ -1,9 +1,5 @@
-streamlit==1.39.0
-pandas==2.2.3
-altair==5.4.1
-openpyxl==3.1.5
-numpy==1.26.4
-python-dateutil==2.9.0.post0
-chardet==5.2.0
-unidecode==1.3.8
-openpyxl==3.1.5
+pandas
+streamlit
+altair
+openpyxl
+xlrd==1.2.0

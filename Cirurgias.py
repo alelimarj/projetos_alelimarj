@@ -42,32 +42,47 @@ st.markdown("<div class='subtitulo'>Evolução mensal do volume de cirurgias por
 
 # === UPLOAD DE ARQUIVO ===
 uploaded_file = st.file_uploader(
-    "📁 Envie seu arquivo TXT (separado por vírgula)", type=["txt", "csv"])
+    "📁 Envie seu arquivo Excel (.xlsx ou .xls)", type=["xlsx", "xls"])
 
 if uploaded_file:
     nome_arquivo = uploaded_file.name.lower()
     extensao = os.path.splitext(nome_arquivo)[1]
 
     try:
-        # === LEITURA DE ARQUIVO TXT/CSV ===
-        if extensao in [".txt", ".csv"]:
-            arquivo = pd.read_csv(uploaded_file, sep=",", encoding="utf-8")
-            # Gera automaticamente uma planilha Excel temporária
-            excel_temp = "arquivo_convertido.xlsx"
-            arquivo.to_excel(excel_temp, index=False)
+        # === LEITURA DE ARQUIVO EXCEL COM TRATAMENTO AUTOMÁTICO ===
+        if extensao == ".xls":
+            try:
+                import xlrd  # tenta importar para garantir que está instalado
+                arquivo = pd.read_excel(uploaded_file, engine="xlrd")
+            except ImportError:
+                st.error(
+                    "❌ Falta o pacote 'xlrd' para ler arquivos .xls. Instale com:\n\n`pip install xlrd==1.2.0`")
+                st.info(
+                    "💡 Dica: converta o arquivo para formato .xlsx para evitar esse erro.")
+                st.stop()
+
+        elif extensao == ".xlsx":
+            try:
+                import openpyxl
+                arquivo = pd.read_excel(uploaded_file, engine="openpyxl")
+            except ImportError:
+                st.error(
+                    "❌ Falta o pacote 'openpyxl' para ler arquivos .xlsx. Instale com:\n\n`pip install -U openpyxl`")
+                st.stop()
+
         else:
             st.error(
-                "❌ Formato de arquivo não suportado. Envie um arquivo .txt ou .csv separado por vírgula.")
+                "❌ Formato de arquivo não suportado. Envie um arquivo .xls ou .xlsx.")
             st.stop()
 
         # === VERIFICAÇÕES DE COLUNAS ===
         if "DATA Inicial" not in arquivo.columns:
             st.error(
-                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do arquivo.")
+                "❌ O arquivo não contém a coluna 'DATA Inicial'. Verifique o layout do Excel.")
             st.stop()
         if "SALA" not in arquivo.columns:
             st.error(
-                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do arquivo.")
+                "❌ O arquivo não contém a coluna 'SALA'. Verifique o layout do Excel.")
             st.stop()
 
         # === CONVERSÃO DE DATAS ===
@@ -185,14 +200,9 @@ if uploaded_file:
         st.download_button("Download CSV", data=csv_bytes,
                            file_name="cirurgias_agrupadas.csv", mime="text/csv")
 
-        # === DOWNLOAD DO EXCEL GERADO ===
-        with open(excel_temp, "rb") as f:
-            st.download_button("💾 Baixar planilha Excel convertida",
-                               f, file_name="arquivo_convertido.xlsx")
-
     except Exception as e:
         st.error(f"⚠️ Erro ao processar o arquivo: {e}")
         st.stop()
 
 else:
-    st.info("⬆️ Envie um arquivo TXT ou CSV (separado por vírgula) para visualizar o dashboard.")
+    st.info("⬆️ Envie um arquivo Excel (.xlsx ou .xls) para visualizar o dashboard.")
