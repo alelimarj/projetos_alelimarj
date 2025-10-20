@@ -12,7 +12,7 @@ import io
 st.set_page_config(page_title="Protocolo Prisma ver. 0.3", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.3")
 st.caption("Conversão automática de .txt para Excel conforme padrão homologado "
-           "(Extração Sishop + Período robusto + Plano corrigido + nome dinâmico)")
+           "(Extração Sishop: flags: Sintético / Paciente / Tipo de Produto / Setor)")
 
 # ----------------------- Funções auxiliares -----------------------
 
