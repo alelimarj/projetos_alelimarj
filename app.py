@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.2
+# app.py — Protocolo Prisma ver. 0.3
 # Execução: streamlit run app.py
 # ============================================================
 
@@ -9,9 +9,10 @@ import csv
 import re
 import io
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.2", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.2")
-st.caption("Conversão automática de .txt para Excel conforme padrão homologado (Período robusto + Plano corrigido + exportação numérica com nome dinâmico)")
+st.set_page_config(page_title="Protocolo Prisma ver. 0.3", layout="wide")
+st.title("🧾 Protocolo Prisma — ver. 0.3")
+st.caption("Conversão automática de .txt para Excel conforme padrão homologado "
+           "(Extração Sishop + Período robusto + Plano corrigido + nome dinâmico)")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -46,10 +47,7 @@ def extract_between(text, start_label, end_label):
 
 
 def extract_plano(text):
-    """
-    Captura o campo Plano de forma mais robusta, mesmo com aspas, vírgulas ou quebras.
-    """
-    m = re.search(r'Plano\s*:\s*"?(.*?)"?$', text.strip())
+    m = re.search(r'Plano\s*:\s*"?([^"]*?)"?$', text.strip())
     if m and m.group(1):
         return m.group(1).strip()
     if "Plano:" in text:
@@ -83,6 +81,10 @@ def process_txt_content(txt: str) -> pd.DataFrame:
     current_periodo = default_periodo
     records = []
     i = 0
+
+    # Captura da data de extração (Extração Sishop)
+    m_data = re.search(r"Data:\s*,?\s*([0-3]?\d/[0-1]?\d/\d{4})", txt)
+    data_extracao = m_data.group(1) if m_data else "DATA_NAO_ENCONTRADA"
 
     while i < len(lines_all):
         line = lines_all[i]
@@ -144,6 +146,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                                 tot_fields[3]) if len(tot_fields) > 3 else None
                             periodo_final = current_periodo or default_periodo
                             records.append({
+                                "Extração Sishop": data_extracao,
                                 "Período": periodo_final,
                                 "Setor": current_setor,
                                 "Paciente": id_nome,
@@ -166,8 +169,8 @@ def process_txt_content(txt: str) -> pd.DataFrame:
         i += 1
 
     df = pd.DataFrame(records, columns=[
-        "Período", "Setor", "Paciente", "Entrada", "Alta", "Convênio",
-        "Plano", "Tipo de Produto", "Qtd. Total", "Custo Atual", "Consumo Total"
+        "Extração Sishop", "Período", "Setor", "Paciente", "Entrada", "Alta",
+        "Convênio", "Plano", "Tipo de Produto", "Qtd. Total", "Custo Atual", "Consumo Total"
     ])
     return df
 
@@ -180,7 +183,6 @@ if uploaded:
     text = uploaded.read().decode("utf-8", errors="ignore")
     df = process_txt_content(text)
 
-    # Prévia formatada (PT-BR)
     df_preview = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_preview[c] = df_preview[c].apply(br_format)
@@ -188,7 +190,6 @@ if uploaded:
     st.markdown("### 2️⃣ Prévia (10 primeiras linhas)")
     st.dataframe(df_preview.head(10), use_container_width=True)
 
-    # Exportação numérica real
     df_export = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_export[c] = pd.to_numeric(df_export[c], errors="coerce")
@@ -196,25 +197,16 @@ if uploaded:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_export.to_excel(writer, index=False,
-                           sheet_name="Protocolo Prisma ver. 0.2")
+                           sheet_name="Protocolo Prisma ver. 0.3")
     buffer.seek(0)
 
-    # Gera nome dinâmico baseado na primeira linha da coluna Período
-    if not df_export.empty and "Período" in df_export.columns:
-        periodo_valor = str(df_export.iloc[0]["Período"]).replace(
-            "/", "-").replace(" ", "_")
-        nome_arquivo = f"Prot_Prisma_{periodo_valor}.xlsx"
-    else:
-        nome_arquivo = "Prot_Prisma.xlsx"
+    periodo_valor = str(df_export.iloc[0]["Período"]).replace(
+        "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
+    nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
     st.success(
-        "✅ Processamento concluído com sucesso! (Exportação numérica e nome dinâmico aplicados)")
-    st.download_button(
-        label="📥 Baixar Excel Gerado",
-        data=buffer,
-        file_name=nome_arquivo,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
+        "✅ Processamento completo! Coluna 'Extração Sishop' adicionada com sucesso.")
+    st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
+                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
     st.info("Envie um arquivo .txt para iniciar o processamento.")
