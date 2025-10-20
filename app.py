@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.3-FIX
+# app.py — Protocolo Prisma ver. 0.3
 # Execução: streamlit run app.py
 # ============================================================
 
@@ -9,10 +9,10 @@ import csv
 import re
 import io
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.3-FIX", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.3-FIX")
-st.caption("Conversão automática de .txt para Excel "
-           "(Extração Sishop + Período robusto + Plano corrigido + nome dinâmico + detecção de Paciente híbrido)")
+st.set_page_config(page_title="Protocolo Prisma ver. 0.3", layout="wide")
+st.title("🧾 Protocolo Prisma — ver. 0.3")
+st.caption("Conversão automática de .txt para Excel conforme padrão homologado "
+           "(Extração Sishop + Período robusto + Plano corrigido + nome dinâmico)")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -82,7 +82,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
     records = []
     i = 0
 
-    # Extração Sishop (data da primeira linha)
+    # Captura da data de extração (Extração Sishop)
     m_data = re.search(r"Data:\s*,?\s*([0-3]?\d/[0-1]?\d/\d{4})", txt)
     data_extracao = m_data.group(1) if m_data else "DATA_NAO_ENCONTRADA"
 
@@ -105,9 +105,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             if len(parts) >= 2:
                 current_setor = parts[1].strip().strip('"')
 
-        # ✅ Correção ver. 0.3-FIX — detecta 'Paciente:' em qualquer parte da linha
-        if "Paciente:" in line:
-            line = line[line.find("Paciente:"):]
+        if line.startswith("Paciente:"):
             fields = next(csv.reader([line]))
             payload = fields[1].strip().strip('"') if len(fields) >= 2 else ""
             split_marker = "  Entrada: "
@@ -122,7 +120,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             j = i + 1
             while j < len(lines_all):
                 l2 = lines_all[j]
-                if "Paciente:" in l2 or "Setor:" in l2:
+                if l2.startswith("Paciente:") or l2.startswith("Setor:"):
                     break
                 if ("AMERICAS MEDICAL CITY" in l2) or ("ALCLIMA" in l2):
                     j += 1
@@ -131,6 +129,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                     prod_fields = next(csv.reader([l2]))
                     tipo_produto = prod_fields[1].strip().strip(
                         '"') if len(prod_fields) > 1 else ""
+
                     k = j + 1
                     while k < len(lines_all):
                         l3 = lines_all[k]
@@ -162,7 +161,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                             })
                             j = k
                             break
-                        if "Tipo de Produto" in l3 or "Paciente:" in l3 or "Setor:" in l3:
+                        if l3.startswith('"Tipo de Produto:"') or l3.startswith("Paciente:") or l3.startswith("Setor:"):
                             break
                         k += 1
                 j += 1
@@ -198,19 +197,16 @@ if uploaded:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_export.to_excel(writer, index=False,
-                           sheet_name="Protocolo Prisma ver. 0.3-FIX")
+                           sheet_name="Protocolo Prisma ver. 0.3")
     buffer.seek(0)
 
     periodo_valor = str(df_export.iloc[0]["Período"]).replace(
         "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
-    nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop_FIX.xlsx"
+    nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
-    st.success("✅ Processamento concluído com sucesso! (ver. 0.3-FIX)")
-    st.download_button(
-        label="📥 Baixar Excel Gerado",
-        data=buffer,
-        file_name=nome_arquivo,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    st.success(
+        "✅ Processamento completo! Coluna 'Extração Sishop' adicionada com sucesso.")
+    st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
+                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
     st.info("Envie um arquivo .txt para iniciar o processamento.")
