@@ -12,8 +12,9 @@ import os
 
 st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.7")
-st.caption(
-    "Processamento ver. 0.3 + DE PARA SETOR aplicado antes da prévia e do download final.")
+st.caption("Processamento automático para converter .txt em excel formatado.")
+
+st.caption("**Para execução perfeita, gere arquivo Consumo Normal - Sishop, estritamente nas configurações da imagem abaixo.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -83,7 +84,6 @@ def process_txt_content(txt: str) -> pd.DataFrame:
     records = []
     i = 0
 
-    # Captura da data de extração (Extração Sishop)
     m_data = re.search(r"Data:\s*,?\s*([0-3]?\d/[0-1]?\d/\d{4})", txt)
     data_extracao = m_data.group(1) if m_data else "DATA_NAO_ENCONTRADA"
 
@@ -175,9 +175,8 @@ def process_txt_content(txt: str) -> pd.DataFrame:
     ])
     return df
 
+
 # ----------------------- Interface Streamlit -----------------------
-
-
 try:
     st.image("image001 (1).png", use_container_width=False, width=760)
 except TypeError:
@@ -190,35 +189,21 @@ if uploaded:
     text = uploaded.read().decode("utf-8", errors="ignore")
     df = process_txt_content(text)
 
-    # --- Aplicar DE PARA antes da prévia ---
     depara_path = os.path.join(os.getcwd(), "DE PARA SETOR.xlsx")
     if os.path.exists(depara_path):
-        try:
-            df_depara = pd.read_excel(depara_path, header=0)
-            df_depara.columns = df_depara.columns.str.strip()
-            if len(df_depara.columns) >= 2:
-                col_setor = df_depara.columns[0]
-                col_correlata = df_depara.columns[1]
-                df = df.merge(df_depara[[col_setor, col_correlata]],
-                              how="left", left_on="Setor", right_on=col_setor)
-                # Novo nome de coluna e valor padrão
-                df.insert(df.columns.get_loc("Setor") + 1,
-                          "Setor Agrupado", df[col_correlata])
-                df["Setor Agrupado"].fillna(
-                    "*SOLICITAR ASSOCIAÇÃO DE SETOR*", inplace=True)
-                df.drop(columns=[col_setor, col_correlata], inplace=True)
-                st.success(
-                    "🧩 Correlação DE PARA SETOR aplicada (coluna 'Setor Agrupado').")
-            else:
-                st.warning(
-                    "⚠️ Arquivo 'DE PARA SETOR.xlsx' não possui colunas suficientes (mínimo: A e B).")
-        except Exception as e:
-            st.warning(f"⚠️ Falha ao aplicar correlação DE PARA SETOR: {e}")
-    else:
-        st.info(
-            "ℹ️ Arquivo 'DE PARA SETOR.xlsx' não encontrado. Prévia exibida sem correlação.")
+        df_depara = pd.read_excel(depara_path, header=0)
+        df_depara.columns = df_depara.columns.str.strip()
+        if len(df_depara.columns) >= 2:
+            col_setor = df_depara.columns[0]
+            col_correlata = df_depara.columns[1]
+            df = df.merge(df_depara[[col_setor, col_correlata]],
+                          how="left", left_on="Setor", right_on=col_setor)
+            df.insert(df.columns.get_loc("Setor") + 1,
+                      "Setor Agrupado", df[col_correlata])
+            df["Setor Agrupado"].fillna(
+                "*SOLICITAR ASSOCIAÇÃO DE SETOR*", inplace=True)
+            df.drop(columns=[col_setor, col_correlata], inplace=True)
 
-    # --- Prévia ---
     df_preview = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_preview[c] = df_preview[c].apply(br_format)
@@ -226,7 +211,6 @@ if uploaded:
     st.markdown("### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado)")
     st.dataframe(df_preview.head(10), use_container_width=True)
 
-    # --- Exportação ---
     df_export = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_export[c] = pd.to_numeric(df_export[c], errors="coerce")
