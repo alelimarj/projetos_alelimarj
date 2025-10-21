@@ -12,7 +12,7 @@ import io
 st.set_page_config(page_title="Protocolo Prisma ver. 0.3", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.3")
 st.caption("CONVERSÃO AUTOMÁTICA DE ARQUIVO TXT PARA EXCEL FORMATADO.")
-st.markdown("**Para perfeita execução do Protocolo Prisma, a extração Sishop deve ser Consumo Normal, estritamente com as configurações da imagem abaixo.**")
+st.markdown("**Para perfeita execução do Protocolo Prisma, a extração Sishop deve ser Consumo Normal, estritamente com as configurações da imagem abaixo ( campo data conforme sua necessidade ).**")
 
 # ----------------------- Funções auxiliares -----------------------
 
