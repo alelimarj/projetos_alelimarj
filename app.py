@@ -11,8 +11,8 @@ import io
 
 st.set_page_config(page_title="Protocolo Prisma ver. 0.3", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.3")
-st.caption("Conversão automática de .txt para Excel conforme padrão homologado "
-           "(Extração Sishop - flags: Sintético / Paciente / Tipo de Produto / Setor)")
+st.caption("CONVERSÃO AUTOMÁTICA DE ARQUIVO TXT PARA EXCEL FORMATADO.")
+st.markdown("**Para perfeita execução do Protocolo Prisma, a extração Sishop deve ser Consumo Normal, estritamente com as configurações da imagem abaixo.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -174,8 +174,15 @@ def process_txt_content(txt: str) -> pd.DataFrame:
     ])
     return df
 
-
 # ----------------------- Interface Streamlit -----------------------
+
+
+# 🔹 Imagem acima da seção 1️⃣ (ajustada: metade do tamanho anterior = 760px)
+try:
+    st.image("image001 (1).png", use_container_width=False, width=760)
+except TypeError:
+    st.image("image001 (1).png", use_column_width=False, width=760)
+
 st.markdown("### 1️⃣ Envie o arquivo .txt para processar")
 uploaded = st.file_uploader("Selecionar arquivo", type=["txt"])
 
