@@ -14,7 +14,7 @@ st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.7")
 st.caption("Processamento automático para converter .txt em excel formatado.")
 
-st.caption("**Para execução perfeita, gere arquivo Consumo Normal - Sishop, estritamente nas configurações da imagem abaixo.**")
+st.caption("**Para execução perfeita, gere arquivo Consumo Normal - Sishop, estritamente nas configurações da imagem abaixo, salvando em .txt.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
