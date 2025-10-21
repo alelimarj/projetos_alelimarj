@@ -89,12 +89,10 @@ def process_txt_content(txt: str) -> pd.DataFrame:
 
     while i < len(lines_all):
         line = lines_all[i]
-        # Ignorar cabeçalhos/rodapés do relatório
         if ("AMERICAS MEDICAL CITY" in line) or ("ALCLIMA" in line):
             i += 1
             continue
 
-        # Atualizar período se aparecer no contexto próximo
         if "Período" in line:
             window = ",".join(lines_all[max(0, i-2):min(len(lines_all), i+5)])
             m = re.search(r'Período\s*:.*?"([^"]+)"', window)
@@ -103,13 +101,11 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                     r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', window)
             current_periodo = m.group(1).strip() if m else default_periodo
 
-        # Captura de Setor
         if line.startswith("Setor:"):
             parts = next(csv.reader([line]))
             if len(parts) >= 2:
                 current_setor = parts[1].strip().strip('"')
 
-        # Bloco Paciente
         if line.startswith("Paciente:"):
             fields = next(csv.reader([line]))
             payload = fields[1].strip().strip('"') if len(fields) >= 2 else ""
@@ -122,7 +118,6 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             convenio = extract_between(payload, "  Convênio: ", "  Plano: ")
             plano = extract_plano(payload)
 
-            # Varre tipos de produto e consolida no "Total do Tipo de Produto:"
             j = i + 1
             while j < len(lines_all):
                 l2 = lines_all[j]
@@ -183,7 +178,6 @@ def process_txt_content(txt: str) -> pd.DataFrame:
 # ----------------------- Interface Streamlit -----------------------
 
 
-# 🔹 Imagem acima da seção 1️⃣
 try:
     st.image("image001 (1).png", use_container_width=False, width=760)
 except TypeError:
@@ -194,11 +188,9 @@ uploaded = st.file_uploader("Selecionar arquivo", type=["txt"])
 
 if uploaded:
     text = uploaded.read().decode("utf-8", errors="ignore")
-
-    # --- Etapa 1: Processamento base (ver. 0.3) ---
     df = process_txt_content(text)
 
-    # --- Etapa 2: Aplicar DE PARA ANTES da prévia ---
+    # --- Aplicar DE PARA antes da prévia ---
     depara_path = os.path.join(os.getcwd(), "DE PARA SETOR.xlsx")
     if os.path.exists(depara_path):
         try:
@@ -209,10 +201,14 @@ if uploaded:
                 col_correlata = df_depara.columns[1]
                 df = df.merge(df_depara[[col_setor, col_correlata]],
                               how="left", left_on="Setor", right_on=col_setor)
+                # Novo nome de coluna e valor padrão
                 df.insert(df.columns.get_loc("Setor") + 1,
-                          "Setor Corrigido", df[col_correlata])
+                          "Setor Agrupado", df[col_correlata])
+                df["Setor Agrupado"].fillna(
+                    "*SOLICITAR ASSOCIAÇÃO DE SETOR*", inplace=True)
                 df.drop(columns=[col_setor, col_correlata], inplace=True)
-                st.success("🧩 Correlação DE PARA SETOR aplicada com sucesso!")
+                st.success(
+                    "🧩 Correlação DE PARA SETOR aplicada (coluna 'Setor Agrupado').")
             else:
                 st.warning(
                     "⚠️ Arquivo 'DE PARA SETOR.xlsx' não possui colunas suficientes (mínimo: A e B).")
@@ -222,7 +218,7 @@ if uploaded:
         st.info(
             "ℹ️ Arquivo 'DE PARA SETOR.xlsx' não encontrado. Prévia exibida sem correlação.")
 
-    # --- Etapa 3: Prévia (já com DE PARA) ---
+    # --- Prévia ---
     df_preview = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_preview[c] = df_preview[c].apply(br_format)
@@ -230,7 +226,7 @@ if uploaded:
     st.markdown("### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado)")
     st.dataframe(df_preview.head(10), use_container_width=True)
 
-    # --- Etapa 4: Exportação ---
+    # --- Exportação ---
     df_export = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_export[c] = pd.to_numeric(df_export[c], errors="coerce")
@@ -246,7 +242,7 @@ if uploaded:
     nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
     st.success(
-        "✅ Processamento completo! DE PARA SETOR já incluído na prévia e no arquivo final.")
+        "✅ Processamento completo! DE PARA SETOR aplicado e preenchimento padrão inserido.")
     st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
