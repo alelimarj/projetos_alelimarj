@@ -1,7 +1,7 @@
-# Protocolo Prisma — ver. 0.2 (Homologado)
+# Protocolo Prisma — ver. 0.3 (Homologado)
 
 Conversão automatizada de arquivos .txt em planilhas Excel conforme o padrão homologado.
-Transforma dados brutos em tabelas organizadas, com extração de Período, Setor, Paciente e produtos.
+Transforma dados brutos em tabelas organizadas, com extração de Data de Extração, Período, Setor, Convênio, Plano, Entra, Alta, Paciente e Produtos.
 
 ## 🔧 Execução local
 pip install -r requirements.txt
@@ -17,7 +17,7 @@ http://localhost:8501
 4. Clique em “Deploy”
 
 O app ficará disponível em:
-https://<seu-usuario>-protocolo-prisma.streamlit.app
+https://protocolo-prisma-ver03.streamlit.app/
 
 ---
 
