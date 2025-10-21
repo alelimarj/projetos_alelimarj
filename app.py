@@ -12,9 +12,12 @@ import os
 
 st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.7")
-st.caption("Processamento ver. 0.3 + DE PARA SETOR aplicado antes da prévia e do download final.")
+st.caption(
+    "Processamento ver. 0.3 + DE PARA SETOR aplicado antes da prévia e do download final.")
 
 # ----------------------- Funções auxiliares -----------------------
+
+
 def parse_number_us(s):
     if s is None:
         return None
@@ -27,11 +30,13 @@ def parse_number_us(s):
     except ValueError:
         return None
 
+
 def br_format(n):
     if n is None or n == "":
         return ""
     s = f"{n:,.2f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 def extract_between(text, start_label, end_label):
     p = text.find(start_label)
@@ -41,6 +46,7 @@ def extract_between(text, start_label, end_label):
     q = text.find(end_label, p)
     return text[p:q].strip() if q != -1 else text[p:].strip()
 
+
 def extract_plano(text):
     m = re.search(r'Plano\s*:\s*"?([^"]*?)"?$', text.strip())
     if m and m.group(1):
@@ -49,16 +55,25 @@ def extract_plano(text):
         return text.split("Plano:")[-1].strip().strip('"')
     return ""
 
+
 def detect_default_periodo(raw_text: str) -> str:
-    m = re.search(r'Período\s*:.*?"\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})\s*"', raw_text, flags=re.DOTALL)
-    if m: return m.group(1).strip()
-    m = re.search(r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', raw_text, flags=re.DOTALL)
-    if m: return m.group(1).strip()
-    m = re.search(r'([0-3]\d/[0-1]\d/\d{4})\s*(?:\n|\s)*a\s*(?:\n|\s)*([0-3]\d/[0-1]\d/\d{4})', raw_text)
-    if m: return f"{m.group(1)} a {m.group(2)}"
+    m = re.search(
+        r'Período\s*:.*?"\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})\s*"', raw_text, flags=re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    m = re.search(
+        r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', raw_text, flags=re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    m = re.search(
+        r'([0-3]\d/[0-1]\d/\d{4})\s*(?:\n|\s)*a\s*(?:\n|\s)*([0-3]\d/[0-1]\d/\d{4})', raw_text)
+    if m:
+        return f"{m.group(1)} a {m.group(2)}"
     return ""
 
 # ----------------------- Núcleo ver. 0.3 -----------------------
+
+
 def process_txt_content(txt: str) -> pd.DataFrame:
     raw = txt.replace(",Setor:,", ",")
     lines_all = raw.splitlines()
@@ -84,7 +99,8 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             window = ",".join(lines_all[max(0, i-2):min(len(lines_all), i+5)])
             m = re.search(r'Período\s*:.*?"([^"]+)"', window)
             if not m:
-                m = re.search(r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', window)
+                m = re.search(
+                    r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', window)
             current_periodo = m.group(1).strip() if m else default_periodo
 
         # Captura de Setor
@@ -99,7 +115,8 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             payload = fields[1].strip().strip('"') if len(fields) >= 2 else ""
             split_marker = "  Entrada: "
             p_ent = payload.find(split_marker)
-            id_nome = payload[:p_ent].strip() if p_ent != -1 else payload.strip()
+            id_nome = payload[:p_ent].strip() if p_ent != - \
+                1 else payload.strip()
             entrada = extract_between(payload, "  Entrada: ", "  Alta: ")
             alta = extract_between(payload, "  Alta: ", "  Convênio: ")
             convenio = extract_between(payload, "  Convênio: ", "  Plano: ")
@@ -116,7 +133,8 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                     continue
                 if l2.startswith('"Tipo de Produto:"'):
                     prod_fields = next(csv.reader([l2]))
-                    tipo_produto = prod_fields[1].strip().strip('"') if len(prod_fields) > 1 else ""
+                    tipo_produto = prod_fields[1].strip().strip(
+                        '"') if len(prod_fields) > 1 else ""
 
                     k = j + 1
                     while k < len(lines_all):
@@ -126,9 +144,12 @@ def process_txt_content(txt: str) -> pd.DataFrame:
                             continue
                         if "Total do Tipo de Produto:" in l3:
                             tot_fields = next(csv.reader([l3]))
-                            qtd_total = parse_number_us(tot_fields[1]) if len(tot_fields) > 1 else None
-                            custo_atual = parse_number_us(tot_fields[2]) if len(tot_fields) > 2 else None
-                            consumo_total = parse_number_us(tot_fields[3]) if len(tot_fields) > 3 else None
+                            qtd_total = parse_number_us(tot_fields[1]) if len(
+                                tot_fields) > 1 else None
+                            custo_atual = parse_number_us(
+                                tot_fields[2]) if len(tot_fields) > 2 else None
+                            consumo_total = parse_number_us(
+                                tot_fields[3]) if len(tot_fields) > 3 else None
                             periodo_final = current_periodo or default_periodo
                             records.append({
                                 "Extração Sishop": data_extracao,
@@ -161,6 +182,7 @@ def process_txt_content(txt: str) -> pd.DataFrame:
 
 # ----------------------- Interface Streamlit -----------------------
 
+
 # 🔹 Imagem acima da seção 1️⃣
 try:
     st.image("image001 (1).png", use_container_width=False, width=760)
@@ -187,15 +209,18 @@ if uploaded:
                 col_correlata = df_depara.columns[1]
                 df = df.merge(df_depara[[col_setor, col_correlata]],
                               how="left", left_on="Setor", right_on=col_setor)
-                df.insert(df.columns.get_loc("Setor") + 1, "Setor Corrigido", df[col_correlata])
+                df.insert(df.columns.get_loc("Setor") + 1,
+                          "Setor Corrigido", df[col_correlata])
                 df.drop(columns=[col_setor, col_correlata], inplace=True)
                 st.success("🧩 Correlação DE PARA SETOR aplicada com sucesso!")
             else:
-                st.warning("⚠️ Arquivo 'DE PARA SETOR.xlsx' não possui colunas suficientes (mínimo: A e B).")
+                st.warning(
+                    "⚠️ Arquivo 'DE PARA SETOR.xlsx' não possui colunas suficientes (mínimo: A e B).")
         except Exception as e:
             st.warning(f"⚠️ Falha ao aplicar correlação DE PARA SETOR: {e}")
     else:
-        st.info("ℹ️ Arquivo 'DE PARA SETOR.xlsx' não encontrado. Prévia exibida sem correlação.")
+        st.info(
+            "ℹ️ Arquivo 'DE PARA SETOR.xlsx' não encontrado. Prévia exibida sem correlação.")
 
     # --- Etapa 3: Prévia (já com DE PARA) ---
     df_preview = df.copy()
@@ -212,13 +237,16 @@ if uploaded:
 
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_export.to_excel(writer, index=False, sheet_name="Protocolo Prisma ver. 0.7")
+        df_export.to_excel(writer, index=False,
+                           sheet_name="Protocolo Prisma ver. 0.7")
     buffer.seek(0)
 
-    periodo_valor = str(df_export.iloc[0]["Período"]).replace("/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
+    periodo_valor = str(df_export.iloc[0]["Período"]).replace(
+        "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
     nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
-    st.success("✅ Processamento completo! DE PARA SETOR já incluído na prévia e no arquivo final.")
+    st.success(
+        "✅ Processamento completo! DE PARA SETOR já incluído na prévia e no arquivo final.")
     st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
