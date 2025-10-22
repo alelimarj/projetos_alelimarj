@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.7j
+# app.py — Protocolo Prisma ver. 0.7
 # ============================================================
 
 import streamlit as st
@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import plotly.express as px
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.7")
+st.set_page_config(page_title="PROTOCOLO PRISMA VER. 0.7", layout="wide")
+st.title("🧾 PROTOCOLO PRISMA VER. 0.7")
 st.caption("Protocolo para conversão de arquivo .txt em excel.")
 st.markdown("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
 st.markdown("**IMPORTANTE: A VOLUMETRIA APURADA REMETE AOS PACIENTES COM CONSUMO NO MÊS EM QUESTÃO E NÃO NA DATA DE ENTRADA / ATENDIMENTO.**")
@@ -172,9 +172,9 @@ def process_txt_content(txt: str) -> pd.DataFrame:
 
 
 try:
-    st.image("image001 (1).png", use_container_width=False, width=760)
+    st.image("image001 (1).png", use_container_width=False, width=1000)
 except TypeError:
-    st.image("image001 (1).png", use_column_width=False, width=760)
+    st.image("image001 (1).png", use_column_width=False, width=1000)
 
 st.markdown("### 1️⃣ Envie o arquivo .txt para processar")
 uploaded = st.file_uploader("Selecionar arquivo", type=["txt"])
@@ -222,11 +222,12 @@ if uploaded:
         df_preview[c] = df_preview[c].apply(br_format)
 
     st.markdown(
-        "### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado e Contagem Única)")
+        "### 2️⃣ Prévia de conversão do Protocolo Prisma")
     st.dataframe(df_preview.head(10), use_container_width=True)
 
     # ------------------- Gráficos e Resumo -------------------
-    st.markdown("### 3️⃣ VOLUME DE ATENDIMENTO POR SETOR AGRUPADO")
+    st.markdown(
+        "### 3️⃣ VOLUME DE ATENDIMENTO, COM CONSUMO MENSAL, POR SETOR AGRUPADO")
 
     coluna_setor = "Setor Agrupado" if "Setor Agrupado" in df_export.columns else "Setor"
     agrupamento = (df_export.groupby(coluna_setor)[
@@ -244,12 +245,12 @@ if uploaded:
         ax.add_patch(Rectangle((bar.get_x(), 0), bar.get_width(), bar.get_height(),
                                facecolor="k", alpha=0.08, zorder=1))
 
-    ax.set_title("VOLUME DE ATENDIMENTO POR SETOR AGRUPADO",
-                 fontsize=8.4, fontweight="bold", color="#333")
+    ax.set_title("VOLUME DE ATENDIMENTO, COM CONSUMO MENSAL, POR SETOR AGRUPADO",
+                 fontsize=6.4, fontweight="bold", color="#333")
     ax.set_xlabel("")
     ax.set_ylabel("")
     ax.set_yticks([])
-    plt.xticks(rotation=45, ha="right", fontsize=6.6, color="#222")
+    plt.xticks(rotation=45, ha="right", fontsize=4.6, color="#222")
     ax.set_ylim(0, max(agrupamento) * 1.18)
     for spine in ["top", "right", "left"]:
         ax.spines[spine].set_visible(False)
@@ -262,7 +263,8 @@ if uploaded:
     st.pyplot(fig)
 
     # ---------- Tabela Resumo com totais ----------
-    st.markdown("#### 📊 RESUMO DE ATENDIMENTO POR SETOR AGRUPADO")
+    st.markdown(
+        "#### 📊 RESUMO DE ATENDIMENTO, COM CONSUMO MENSAL, POR SETOR AGRUPADO")
     df_resumo_base = agrupamento.reset_index()
     df_resumo_base.columns = ["Setor Agrupado", "Volume de Atendimentos"]
     df_resumo_base["% do Total"] = (
@@ -285,7 +287,7 @@ if uploaded:
     st.dataframe(df_resumo_disp, use_container_width=True)
 
     # ---------- Gráfico de Pizza ----------
-    st.markdown("#### 🥧 Distribuição Percentual por Setor Agrupado (interativo)")
+    st.markdown("#### 🥧 Distribuição Percentual por Setor Agrupado")
     df_pie = df_resumo_base[df_resumo_base["Setor Agrupado"]
                             != "TOTAL GERAL"].copy()
     fig_pie = px.pie(df_pie, names="Setor Agrupado",
@@ -300,7 +302,7 @@ if uploaded:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_export.to_excel(writer, index=False,
-                           sheet_name="Protocolo Prisma ver. 0.7j")
+                           sheet_name="Protocolo Prisma ver. 0.7")
         df_resumo_disp.to_excel(writer, index=False,
                                 sheet_name="Resumo por Setor Agrupado")
         img_buffer = io.BytesIO()
