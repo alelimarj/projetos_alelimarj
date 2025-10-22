@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.7i
+# app.py — Protocolo Prisma ver. 0.7j
 # ============================================================
 
 import streamlit as st
@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import plotly.express as px
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.7i", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.7i")
-st.caption("Protocolo para conversão de arquivo .txt em Excel, com gráfico de barras 3D exportado, tabela-resumo com totais e formatação condicional, e gráfico de pizza interativo.")
+st.set_page_config(page_title="Protocolo Prisma ver. 0.7j", layout="wide")
+st.title("🧾 Protocolo Prisma — ver. 0.7j")
+st.caption("Protocolo para conversão de arquivo .txt em Excel, com gráfico de barras 3D, tabela-resumo com totais e formatação condicional, e gráfico de pizza interativo.")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -209,35 +209,38 @@ if uploaded:
         df["Cont. Pac.&Setor Unico"] = (~df.duplicated(
             subset=["Paciente", "Setor"], keep="first")).astype(int)
 
-    # Conversão para numérico nas colunas de valores
+    # Conversão para numérico
     df_export = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_export[c] = pd.to_numeric(df_export[c], errors="coerce")
 
-    # ------------------- Visualizações -------------------
+    # ------------------- Prévia tradicional restaurada -------------------
+    df_preview = df.copy()
+    for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
+        df_preview[c] = df_preview[c].apply(br_format)
+
+    st.markdown(
+        "### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado e Contagem Única)")
+    st.dataframe(df_preview.head(10), use_container_width=True)
+
+    # ------------------- Gráficos e Resumo -------------------
     st.markdown("### 3️⃣ VOLUME DE ATENDIMENTO POR SETOR AGRUPADO")
 
     coluna_setor = "Setor Agrupado" if "Setor Agrupado" in df_export.columns else "Setor"
-    agrupamento = (
-        df_export.groupby(coluna_setor)["Cont. Pac.&Setor Unico"]
-        .sum()
-        .sort_values(ascending=False)
-    )
+    agrupamento = (df_export.groupby(coluna_setor)[
+                   "Cont. Pac.&Setor Unico"].sum().sort_values(ascending=False))
 
-    # ---------- Gráfico de Barras 3D (efeito) ----------
+    # Gráfico 3D
     fig, ax = plt.subplots(figsize=(6, 2.3))
     bars = ax.bar(agrupamento.index, agrupamento.values,
                   color=plt.cm.viridis(np.linspace(
                       0.3, 0.9, len(agrupamento))),
                   edgecolor="none")
-
-    # Sombreamento 3D suave
     for bar in bars:
         bar.set_zorder(2)
         bar.set_alpha(0.92)
-        ax.add_patch(Rectangle(
-            (bar.get_x(), 0), bar.get_width(), bar.get_height(),
-            facecolor="k", alpha=0.08, zorder=1))
+        ax.add_patch(Rectangle((bar.get_x(), 0), bar.get_width(), bar.get_height(),
+                               facecolor="k", alpha=0.08, zorder=1))
 
     ax.set_title("VOLUME DE ATENDIMENTO POR SETOR AGRUPADO",
                  fontsize=8.4, fontweight="bold", color="#333")
@@ -250,17 +253,14 @@ if uploaded:
         ax.spines[spine].set_visible(False)
     ax.spines["bottom"].set_color("#aaa")
 
-    # Valores no topo (formato BR sem decimais)
     for i, v in enumerate(agrupamento):
         ax.text(i, v + max(agrupamento) * 0.015, f"{int(v):,}".replace(",", "."),
                 ha="center", va="bottom", fontsize=7, fontweight="bold", color="#222")
 
     st.pyplot(fig)
 
-    # ---------- Tabela Resumo com totais + formatação condicional ----------
+    # ---------- Tabela Resumo com totais ----------
     st.markdown("#### 📊 RESUMO DE ATENDIMENTO POR SETOR AGRUPADO")
-
-    # Base numérica para cálculos/plots
     df_resumo_base = agrupamento.reset_index()
     df_resumo_base.columns = ["Setor Agrupado", "Volume de Atendimentos"]
     df_resumo_base["% do Total"] = (
@@ -275,84 +275,32 @@ if uploaded:
     })
     df_resumo_base = pd.concat([df_resumo_base, total_row], ignore_index=True)
 
-    # DataFrame exibido (formatado BR)
     df_resumo_disp = df_resumo_base.copy()
     df_resumo_disp["Volume de Atendimentos"] = df_resumo_disp["Volume de Atendimentos"].apply(
         lambda x: f"{int(x):,}".replace(",", "."))
     df_resumo_disp["% do Total"] = df_resumo_disp["% do Total"].apply(
         lambda x: f"{x:.2f}%")
+    st.dataframe(df_resumo_disp, use_container_width=True)
 
-    # Formatação condicional (gradiente de verde) apenas nas linhas não-totais
-    df_cond = df_resumo_base.copy()
-    df_cond["__is_total__"] = df_cond["Setor Agrupado"].eq("TOTAL GERAL")
-    max_val = df_cond.loc[~df_cond["__is_total__"],
-                          "Volume de Atendimentos"].max()
-    min_val = df_cond.loc[~df_cond["__is_total__"],
-                          "Volume de Atendimentos"].min()
-
-    def color_scale(val, is_total):
-        if is_total or pd.isna(val):
-            return ""
-        ratio = (val - min_val) / (max_val -
-                                   min_val) if max_val != min_val else 0
-        r, g, b = int(210 - 120*ratio), int(255 -
-                                            110*ratio), int(210 - 200*ratio)
-        return f"background-color: rgb({r},{g},{b});"
-
-    def style_row(row):
-        is_total = row["Setor Agrupado"] == "TOTAL GERAL"
-        styles = []
-        for col in df_resumo_disp.columns:
-            if col == "Volume de Atendimentos":
-                raw_val = df_cond.loc[row.name, "Volume de Atendimentos"]
-                styles.append(color_scale(raw_val, is_total))
-            else:
-                styles.append("")
-        if is_total:
-            styles = [
-                "font-weight: bold; background-color: #e8e8e8;"] * len(styles)
-        return styles
-
-    styled = (df_resumo_disp.style
-              .set_table_styles([
-                  {"selector": "th", "props": [
-                      ("padding", "3px 6px"), ("font-size", "12px")]},
-                  {"selector": "td", "props": [
-                      ("padding", "1px 4px"), ("font-size", "11px")]}
-              ])
-              .apply(style_row, axis=1)
-              )
-
-    st.dataframe(styled, use_container_width=True)
-
-    # ---------- Gráfico de Pizza (interativo) ----------
+    # ---------- Gráfico de Pizza ----------
     st.markdown("#### 🥧 Distribuição Percentual por Setor Agrupado (interativo)")
-
     df_pie = df_resumo_base[df_resumo_base["Setor Agrupado"]
                             != "TOTAL GERAL"].copy()
-    fig_pie = px.pie(
-        df_pie,
-        names="Setor Agrupado",
-        values="Volume de Atendimentos",
-        hole=0.35
-    )
+    fig_pie = px.pie(df_pie, names="Setor Agrupado",
+                     values="Volume de Atendimentos", hole=0.35)
     fig_pie.update_traces(textposition="inside",
                           texttemplate="%{label}<br>%{percent}")
     fig_pie.update_layout(margin=dict(l=0, r=0, t=20, b=0), height=320)
     st.plotly_chart(fig_pie, use_container_width=True,
                     config={"displaylogo": False})
 
-    # ------------------- Exportação Excel -------------------
+    # Exportação Excel
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        # Dados completos
         df_export.to_excel(writer, index=False,
-                           sheet_name="Protocolo Prisma ver. 0.7i")
-        # Resumo (formatado para leitura)
+                           sheet_name="Protocolo Prisma ver. 0.7j")
         df_resumo_disp.to_excel(writer, index=False,
                                 sheet_name="Resumo por Setor Agrupado")
-
-        # Exporta imagem do gráfico de barras (requer Pillow para embed)
         img_buffer = io.BytesIO()
         fig.savefig(img_buffer, format="png", dpi=200, bbox_inches="tight")
         img_buffer.seek(0)
@@ -361,13 +309,11 @@ if uploaded:
         ws.add_image(Image(img_buffer), "A1")
 
     buffer.seek(0)
-
-    # Nome do arquivo de saída
-    periodo_valor = (str(df_export.iloc[0]["Período"]).replace("/", "-").replace(" ", "_")
-                     if not df_export.empty else "sem_periodo")
+    periodo_valor = str(df_export.iloc[0]["Período"]).replace(
+        "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
     nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
-    st.success("✅ Processamento completo! Barras 3D, tabela com totais e formatação condicional, e pizza interativa incluídas.")
+    st.success("✅ Processamento completo! Prévia, barras 3D, totais, pizza interativa e exportação Excel geradas com sucesso.")
     st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
