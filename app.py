@@ -13,9 +13,10 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import plotly.express as px
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.7j", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.7j")
-st.caption("Protocolo para conversão de arquivo .txt em Excel, com gráfico de barras 3D, tabela-resumo com totais e formatação condicional, e gráfico de pizza interativo.")
+st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
+st.title("🧾 Protocolo Prisma — ver. 0.7")
+st.caption("Protocolo para conversão de arquivo .txt em excel.")
+st.markdown("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
