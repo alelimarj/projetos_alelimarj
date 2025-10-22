@@ -14,7 +14,7 @@ st.title("🧾 Protocolo Prisma — ver. 0.7a")
 st.caption(
     "Protocolo para conversão de arquivo .txt em excel.")
 
-st.caption("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
+st.markdown("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
