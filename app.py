@@ -1,6 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.7
-# Execução: streamlit run app.py
+# app.py — Protocolo Prisma ver. 0.7 (atualizado)
 # ============================================================
 
 import streamlit as st
@@ -12,9 +11,9 @@ import os
 
 st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.7")
-st.caption("Processamento automático para converter .txt em excel formatado.")
+st.caption("Protocolo de conversão de arquivo txt para excel.")
 
-st.caption("**Para execução perfeita, gere arquivo Consumo Normal - Sishop, estritamente nas configurações da imagem abaixo, salvando em .txt.**")
+st.caption("**Para perfeita excecução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamengte nas configurações da figura abaixo e salve txt ( data conforme demanda ).**")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -56,29 +55,27 @@ def extract_plano(text):
         return text.split("Plano:")[-1].strip().strip('"')
     return ""
 
+# ----------------------- Nova função de varredura -----------------------
 
-def detect_default_periodo(raw_text: str) -> str:
-    m = re.search(
-        r'Período\s*:.*?"\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})\s*"', raw_text, flags=re.DOTALL)
-    if m:
-        return m.group(1).strip()
-    m = re.search(
-        r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', raw_text, flags=re.DOTALL)
-    if m:
-        return m.group(1).strip()
-    m = re.search(
-        r'([0-3]\d/[0-1]\d/\d{4})\s*(?:\n|\s)*a\s*(?:\n|\s)*([0-3]\d/[0-1]\d/\d{4})', raw_text)
-    if m:
-        return f"{m.group(1)} a {m.group(2)}"
-    return ""
 
-# ----------------------- Núcleo ver. 0.3 -----------------------
+def detect_periodo_first_lines(raw_text: str) -> str:
+    """
+    Procura o termo 'Período' nas 3 primeiras linhas do arquivo.
+    Aceita variações com aspas, vírgulas e espaços.
+    """
+    lines = raw_text.splitlines()[:3]
+    header = " ".join(lines)
+    m = re.search(
+        r'[",]*Período\s*:[" ,]*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', header)
+    return m.group(1).strip() if m else ""
+
+# ----------------------- Núcleo de processamento -----------------------
 
 
 def process_txt_content(txt: str) -> pd.DataFrame:
     raw = txt.replace(",Setor:,", ",")
     lines_all = raw.splitlines()
-    default_periodo = detect_default_periodo(raw)
+    default_periodo = detect_periodo_first_lines(raw)
     current_setor = ""
     current_periodo = default_periodo
     records = []
@@ -93,12 +90,11 @@ def process_txt_content(txt: str) -> pd.DataFrame:
             i += 1
             continue
 
+        # Atualiza período se encontrado mais abaixo
         if "Período" in line:
             window = ",".join(lines_all[max(0, i-2):min(len(lines_all), i+5)])
-            m = re.search(r'Período\s*:.*?"([^"]+)"', window)
-            if not m:
-                m = re.search(
-                    r'Período\s*:\s*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', window)
+            m = re.search(
+                r'[",]*Período\s*:[" ,]*([0-3]\d/[0-1]\d/\d{4}\s*a\s*[0-3]\d/[0-1]\d/\d{4})', window)
             current_periodo = m.group(1).strip() if m else default_periodo
 
         if line.startswith("Setor:"):
@@ -225,8 +221,7 @@ if uploaded:
         "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
     nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
-    st.success(
-        "✅ Processamento completo! DE PARA SETOR aplicado e preenchimento padrão inserido.")
+    st.success("✅ Processamento completo! Baixe o seu arquivo Excel!.")
     st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
