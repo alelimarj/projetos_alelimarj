@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — Protocolo Prisma ver. 0.7 (atualizado)
+# app.py — Protocolo Prisma ver. 0.7a
 # ============================================================
 
 import streamlit as st
@@ -9,11 +9,12 @@ import re
 import io
 import os
 
-st.set_page_config(page_title="Protocolo Prisma ver. 0.7", layout="wide")
-st.title("🧾 Protocolo Prisma — ver. 0.7")
-st.caption("Protocolo de conversão de arquivo txt para excel.")
+st.set_page_config(page_title="Protocolo Prisma ver. 0.7a", layout="wide")
+st.title("🧾 Protocolo Prisma — ver. 0.7a")
+st.caption(
+    "Versão estendida com ordenação e controle de unicidade de Paciente + Setor Agrupado.")
 
-st.caption("**Para perfeita excecução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamengte nas configurações da figura abaixo e salve txt ( data conforme demanda ).**")
+st.caption("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
 
 # ----------------------- Funções auxiliares -----------------------
 
@@ -200,11 +201,27 @@ if uploaded:
                 "*SOLICITAR ASSOCIAÇÃO DE SETOR*", inplace=True)
             df.drop(columns=[col_setor, col_correlata], inplace=True)
 
+    # ------------------- Ordenação e coluna de controle -------------------
+    if "Setor Agrupado" in df.columns:
+        df.sort_values(by=["Paciente", "Setor Agrupado"],
+                       inplace=True, ignore_index=True)
+        df["Cont. Pac.&Setor Unico"] = (
+            ~df.duplicated(subset=["Paciente", "Setor Agrupado"], keep="first")
+        ).astype(int)
+    else:
+        df.sort_values(by=["Paciente", "Setor"],
+                       inplace=True, ignore_index=True)
+        df["Cont. Pac.&Setor Unico"] = (
+            ~df.duplicated(subset=["Paciente", "Setor"], keep="first")
+        ).astype(int)
+
+    # ------------------- Prévia e Exportação -------------------
     df_preview = df.copy()
     for c in ["Qtd. Total", "Custo Atual", "Consumo Total"]:
         df_preview[c] = df_preview[c].apply(br_format)
 
-    st.markdown("### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado)")
+    st.markdown(
+        "### 2️⃣ Prévia do Protocolo Prisma (com DE PARA aplicado e Contagem Única)")
     st.dataframe(df_preview.head(10), use_container_width=True)
 
     df_export = df.copy()
@@ -214,14 +231,14 @@ if uploaded:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_export.to_excel(writer, index=False,
-                           sheet_name="Protocolo Prisma ver. 0.7")
+                           sheet_name="Protocolo Prisma ver. 0.7a")
     buffer.seek(0)
 
     periodo_valor = str(df_export.iloc[0]["Período"]).replace(
         "/", "-").replace(" ", "_") if not df_export.empty else "sem_periodo"
     nome_arquivo = f"Prot_Prisma_{periodo_valor}_Sishop.xlsx"
 
-    st.success("✅ Processamento completo! Baixe o seu arquivo Excel!.")
+    st.success("✅ Processamento completo! Ordenação e contagem única aplicadas.")
     st.download_button(label="📥 Baixar Excel Gerado", data=buffer, file_name=nome_arquivo,
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 else:
