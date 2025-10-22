@@ -12,7 +12,7 @@ import os
 st.set_page_config(page_title="Protocolo Prisma ver. 0.7a", layout="wide")
 st.title("🧾 Protocolo Prisma — ver. 0.7a")
 st.caption(
-    "Versão estendida com ordenação e controle de unicidade de Paciente + Setor Agrupado.")
+    "Protocolo para conversão de arquivo .txt em excel.")
 
 st.caption("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve o txt.**")
 
