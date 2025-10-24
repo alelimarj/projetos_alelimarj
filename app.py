@@ -18,7 +18,8 @@ from datetime import datetime, date
 
 st.set_page_config(page_title="PROTOCOLO PRISMA VER. 0.7.6", layout="wide")
 st.title("🧾 PROTOCOLO PRISMA VER. 0.7.6")
-st.caption("Protocolo para conversão de arquivo .txt em Excel — seleção múltipla, consolidação por mês (sempre o último upload), gráficos e memória histórica (.parquet).")
+st.caption(
+    "Protocolo para conversão de arquivo .txt em Excel — seleção múltipla, consolidação por mês.")
 st.markdown("**Para perfeita execução do Protocolo Prisma, extraia o relatório de Consumo Normal - Sishop, estritamente nas configurações da figura abaixo e salve os .txt.**")
 st.markdown("**IMPORTANTE: A VOLUMETRIA APURADA REMETE AOS PACIENTES COM CONSUMO NO MÊS EM QUESTÃO E NÃO NA DATA DE ENTRADA / ATENDIMENTO.**")
 
